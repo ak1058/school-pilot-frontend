@@ -1,0 +1,150 @@
+'use client';
+import Link from 'next/link';
+import Image from 'next/image';
+import { useState } from 'react';
+import { useRouter, usePathname } from 'next/navigation';
+import { FiHome, FiUsers, FiSettings, FiLogOut, FiX } from 'react-icons/fi';
+import Swal from 'sweetalert2';
+
+export default function Sidebar({ user, isOpen, onClose }) {
+  const schoolName = user?.school_name || 'Delhi Public School';
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const router = useRouter();
+  const pathname = usePathname();
+    
+  const isActive = (href) => {
+    return pathname === href;
+  };
+
+  const handleLogout = async () => {
+    const result = await Swal.fire({
+      title: 'Are you sure?',
+      text: 'You will be logged out of the system',
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonColor: '#6366f1',
+      cancelButtonColor: '#ef4444',
+      confirmButtonText: 'Yes, logout',
+      cancelButtonText: 'Cancel',
+      backdrop: 'rgba(79, 70, 229, 0.4)'
+    });
+
+    if (result.isConfirmed) {
+      setIsLoggingOut(true);
+      try {
+        const response = await fetch('/api/logout', {
+          method: 'POST',
+          credentials: 'include'
+        });
+
+        if (response.ok) {
+          localStorage.removeItem('user');
+          localStorage.removeItem(`admins_${user.school_id}`);
+          
+          await Swal.fire({
+            title: 'Logged out!',
+            text: 'You have been successfully logged out',
+            icon: 'success',
+            confirmButtonColor: '#6366f1',
+            timer: 2000,
+            timerProgressBar: true
+          });
+          
+          router.push('/login');
+        } else {
+          throw new Error('Logout failed');
+        }
+      } catch (error) {
+        Swal.fire({
+          title: 'Error!',
+          text: error.message || 'Logout failed',
+          icon: 'error',
+          confirmButtonColor: '#6366f1'
+        });
+      } finally {
+        setIsLoggingOut(false);
+      }
+    }
+  };
+
+  return (
+    <aside className={`
+      fixed lg:relative z-30 w-64 bg-white shadow-sm border-r border-gray-200 flex flex-col
+      transform transition-transform duration-300 ease-in-out
+      ${isOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0
+      h-full
+    `}>
+      {/* Close button for mobile */}
+      <button
+        onClick={onClose}
+        className="lg:hidden absolute right-4 top-4 p-1 text-gray-500 hover:text-gray-700"
+      >
+        <FiX className="h-5 w-5" />
+      </button>
+      
+      <div className="p-4 border-b border-gray-200 flex items-center space-x-3">
+        <div className="w-10 h-10 rounded-lg bg-white-600 flex items-center justify-center overflow-hidden">
+          <Image 
+            src="/school-logo.jpeg"
+            alt="School Logo"
+            width={40}
+            height={40}
+            className="object-contain p-1"
+          />
+        </div>
+        <div>
+          <h2 className="text-lg font-semibold text-gray-800">Schoolmate-AI</h2>
+          <p className="text-xs text-gray-500">{schoolName || 'Delhi Public School'}</p>
+        </div>
+      </div>
+      
+      <nav className="flex-1 p-4 space-y-1">
+        <Link 
+          href={`/${schoolName}/superuser/dashboard`}
+          className={`flex items-center px-3 py-2 text-sm font-medium rounded-lg ${
+            isActive(`/${schoolName}/dashboard`) 
+              ? 'bg-indigo-50 text-indigo-700' 
+              : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+          }`}
+          onClick={onClose}
+        >
+          <FiHome className="mr-3" />
+          Dashboard
+        </Link>
+        <Link 
+          href={`/${schoolName}/superuser/manage-admins`}
+          className={`flex items-center px-3 py-2 text-sm font-medium rounded-lg ${
+            isActive(`/${schoolName}/manage-admins`) 
+              ? 'bg-indigo-50 text-indigo-700' 
+              : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+          }`}
+          onClick={onClose}
+        >
+          <FiHome className="mr-3" />
+          Manage-Admins
+        </Link>
+        <Link 
+          href="#" 
+          className="flex items-center px-3 py-2 text-sm font-medium rounded-lg text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+          onClick={onClose}
+        >
+          <FiSettings className="mr-3" />
+          Settings
+        </Link>
+      </nav>
+      
+      <div className="p-4 border-t border-gray-200">
+        <button 
+          onClick={handleLogout}
+          disabled={isLoggingOut}
+          className={`flex items-center w-full px-3 py-2 text-sm font-medium rounded-lg cursor-pointer ${
+            isLoggingOut ? 'text-gray-400' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+          }`}
+        >
+          <FiLogOut className="mr-3" />
+          {isLoggingOut ? 'Logging out...' : 'Logout'}
+        </button>
+      </div>
+    </aside>
+  );
+}

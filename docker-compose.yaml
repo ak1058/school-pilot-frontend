@@ -1,0 +1,15 @@
+
+
+services:
+  nextjs-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: schoolmate-nextjs
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      # Example for loading .env.production (you can add more)
+      - NEXT_PUBLIC_API_BASE_URL=http://167.71.235.71:8000
+    restart: unless-stopped
