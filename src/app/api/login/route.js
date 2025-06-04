@@ -41,6 +41,6 @@ export async function POST(request) {
     return res;
   } catch (error) {
     console.error('Login error:', error);
-    return NextResponse.json({ error: 'Network error' }, { status: 500 });
+    return NextResponse.json({ error: error }, { status: 500 });
   }
 }
