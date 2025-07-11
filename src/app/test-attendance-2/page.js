@@ -1,6 +1,6 @@
 "use client"
-import { useState } from 'react';
-import { FiCheck, FiX, FiArrowLeft, FiArrowRight, FiUsers, FiCheckCircle, FiAlertCircle } from 'react-icons/fi';
+import { useState, useEffect } from 'react';
+import { FiCheck, FiX, FiArrowLeft, FiArrowRight, FiUsers, FiCheckCircle, FiAlertCircle, FiSearch } from 'react-icons/fi';
 import Head from 'next/head';
 
 // Dummy student data
@@ -24,11 +24,22 @@ export default function AttendancePageV2() {
     students.reduce((acc, student) => ({ ...acc, [student.id]: null }), {})
   );
   const [showReport, setShowReport] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filteredStudents, setFilteredStudents] = useState(students);
 
-  const currentStudent = students[currentIndex];
+  const currentStudent = filteredStudents[currentIndex];
   const presentCount = Object.values(attendance).filter(status => status === true).length;
   const absentCount = Object.values(attendance).filter(status => status === false).length;
-  const remainingCount = students.length - presentCount - absentCount;
+  const remainingCount = filteredStudents.length - presentCount - absentCount;
+
+  useEffect(() => {
+    const results = students.filter(student =>
+      student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      student.rollNo.toString().includes(searchTerm)
+    );
+    setFilteredStudents(results);
+    setCurrentIndex(0); // Reset to first student when search changes
+  }, [searchTerm]);
 
   const markAttendance = (isPresent) => {
     setAttendance(prev => ({
@@ -37,7 +48,7 @@ export default function AttendancePageV2() {
     }));
     
     // Auto-advance to next student if not last
-    if (currentIndex < students.length - 1) {
+    if (currentIndex < filteredStudents.length - 1) {
       setTimeout(() => setCurrentIndex(currentIndex + 1), 300);
     }
   };
@@ -49,9 +60,13 @@ export default function AttendancePageV2() {
   };
 
   const goToNext = () => {
-    if (currentIndex < students.length - 1) {
+    if (currentIndex < filteredStudents.length - 1) {
       setCurrentIndex(currentIndex + 1);
     }
+  };
+
+  const jumpToStudent = (index) => {
+    setCurrentIndex(index);
   };
 
   const handleSubmit = () => {
@@ -69,15 +84,49 @@ export default function AttendancePageV2() {
         <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet" />
       </Head>
       
-      <div className="min-h-screen bg-gray-50 p-4 md:p-8 flex flex-col items-center justify-center" style={{ fontFamily: "'Roboto', sans-serif" }}>
+      <div className="min-h-screen bg-gray-50 p-4 md:p-8 flex flex-col items-center" style={{ fontFamily: "'Roboto', sans-serif" }}>
         <div className="w-full max-w-md">
           {/* Header */}
-          <div className="text-center mb-8">
+          <div className="text-center mb-4">
             <h1 className="text-2xl font-bold text-[#000080] mb-1">Attendance</h1>
             <p className="text-[#0000FF] font-medium">Class 10th A • {new Date(date).toLocaleDateString()}</p>
-            <div className="mt-2 text-gray-500 flex justify-center items-center gap-2">
-              <FiUsers />
-              <span>{currentIndex + 1} of {students.length}</span>
+          </div>
+
+          {/* Search Bar */}
+          <div className="relative mb-4">
+            <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-[#000080]/70" />
+            <input
+              type="text"
+              placeholder="Search by name or roll number..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 border border-[#000080]/20 rounded-lg focus:ring-2 focus:ring-[#000080] focus:border-[#000080] outline-none font-medium"
+            />
+          </div>
+
+          {/* Instagram Stories-like Roll Number Tray */}
+          <div className="mb-6">
+            <div className="flex overflow-x-auto pb-2 scrollbar-hide space-x-2">
+              {filteredStudents.map((student, index) => (
+                <div 
+                  key={student.id} 
+                  onClick={() => jumpToStudent(index)}
+                  className={`flex-shrink-0 w-14 h-14 rounded-lg flex items-center justify-center relative cursor-pointer transition-all
+                    ${currentIndex === index ? 
+                      'border-2 border-[#000080] scale-105' : 
+                      'border border-gray-300 hover:border-[#000080]/50'}`}
+                >
+                  <span className="font-medium text-[#000080]">{student.rollNo}</span>
+                  
+                  {/* Attendance status badge */}
+                  {attendance[student.id] !== null && (
+                    <div className={`absolute -bottom-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold text-white
+                      ${attendance[student.id] ? 'bg-green-500' : 'bg-red-500'}`}>
+                      {attendance[student.id] ? 'P' : 'A'}
+                    </div>
+                  )}
+                </div>
+              ))}
             </div>
           </div>
 
@@ -126,7 +175,7 @@ export default function AttendancePageV2() {
               <FiArrowLeft /> Previous
             </button>
             
-            {currentIndex === students.length - 1 ? (
+            {currentIndex === filteredStudents.length - 1 ? (
               <button
                 onClick={handleSubmit}
                 className="flex-1 py-2 px-4 bg-[#000080] hover:bg-[#0000FF] text-white rounded-lg font-medium transition"
@@ -136,9 +185,9 @@ export default function AttendancePageV2() {
             ) : (
               <button
                 onClick={goToNext}
-                disabled={currentIndex === students.length - 1}
+                disabled={currentIndex === filteredStudents.length - 1}
                 className={`flex-1 py-2 px-4 rounded-lg flex items-center justify-center gap-2 transition
-                  ${currentIndex === students.length - 1 ? 
+                  ${currentIndex === filteredStudents.length - 1 ? 
                     'bg-gray-200 text-gray-400 cursor-not-allowed' : 
                     'bg-[#000080]/10 text-[#000080] hover:bg-[#000080]/20'}`}
               >
@@ -157,8 +206,11 @@ export default function AttendancePageV2() {
             <div className="w-full bg-gray-200 rounded-full h-2.5">
               <div 
                 className="bg-[#000080] h-2.5 rounded-full" 
-                style={{ width: `${((presentCount + absentCount) / students.length) * 100}%` }}
+                style={{ width: `${((presentCount + absentCount) / filteredStudents.length) * 100}%` }}
               ></div>
+            </div>
+            <div className="mt-2 text-center text-sm text-gray-500">
+              {currentIndex + 1} of {filteredStudents.length} students
             </div>
           </div>
         </div>
@@ -186,7 +238,7 @@ export default function AttendancePageV2() {
                 </div>
                 <div className="flex justify-between items-center p-4 bg-[#000080]/10 rounded-lg">
                   <span className="text-[#000080] font-medium">Class Strength</span>
-                  <span className="text-[#000080] font-bold">{students.length}</span>
+                  <span className="text-[#000080] font-bold">{filteredStudents.length}</span>
                 </div>
               </div>
 
